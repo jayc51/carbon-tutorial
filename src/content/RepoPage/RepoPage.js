@@ -1,6 +1,68 @@
 import React from 'react';
 import RepoTable from './RepoTable';
-import { Grid, Column } from '@carbon/react';
+import { gql, userQuery } from '@apollo/client';
+import { Link, Grid, Column } from '@carbon/react';
+
+const { loading, error, data } = useQuery(REPO_QUERY);
+
+const LinkList = ({ url, homepageUrl }) => (
+  <ul style={{ display: 'flex' }}>
+    <li>
+      <Link href={url}>GitHub</Link>
+    </li>
+    {homepageUrl && (
+      <li>
+        <span>&nbsp;|&nbsp;</span>
+        <Link href={homepageUrl}>Homepage</Link>
+      </li>
+    )}
+  </ul>
+);
+
+const getRowItems = rows =>
+  rows.map(row => ({
+    ...row,
+    key: row.id,
+    stars: row.stargazers.totalCount,
+    issueCount: row.issues.totalCount,
+    createdAt: new Date(row.createdAt).toLocaleDateString(),
+    updatedAt: new Date(row.updatedAt).toLocaleDateString(),
+    links: <LinkList url={row.url} homepageUrl={row.homepageUrl} />,
+  }));
+
+const REPO_QUERY = gql`
+  query REPO_QUERY {
+    # Let's use carbon as our organization
+    organization(login: "carbon-design-system") {
+      # We'll grab all the repositories in one go. To load more resources
+      # continuously, see the advanced topics.
+      repositories(first: 75, orderBy: { field: UPDATED_AT, direction: DESC }) {
+        totalCount
+        nodes {
+          url
+          homepageUrl
+          issues(filterBy: { states: OPEN }) {
+            totalCount
+          }
+          stargazers {
+            totalCount
+          }
+          releases(first: 1) {
+            totalCount
+            nodes {
+              name
+            }
+          }
+          name
+          updatedAt
+          createdAt
+          description
+          id
+        }
+      }
+    }
+  }
+`;
 
 const headers = [
   {
